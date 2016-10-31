@@ -1,0 +1,9 @@
+notifications:
+  email: false
+
+before_install:
+  - npm install -g gulp-cli yarn
+
+install: yarn install
+
+script: yarn release

@@ -1,6 +1,8 @@
 notifications:
   email: false
 
+language: node_js
+
 before_install:
   - npm install -g gulp-cli yarn
 

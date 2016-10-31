@@ -18,7 +18,11 @@ deploy:
   provider: releases
   api_key:
     secure: JQfoQaT6lecg5tUnqzW4J2j1j543P4mQ+kNP2bcxih3hAmG+N6pG4leHXAxSHslbC567F5QrqE1MWPl257j5zlga8Ap58YkXQOGBh5I6KX1YhDoVGPn9YEu3+YEKiYW2VMlX85EhXiMr2foZy6ii+fsAiBexHJ+rOglngA/Kzt4nIGEhXh/9xawszDaba3oPA3Azs7w+kPEC/N/QagyPUUbeMtpQsA0Rx1qXGhQKykOZSUYpZJdJs//DTMEvXRRh/3rkWQOiVex3clBXvMNr2LYHeZyto1+bfhxXmzRbKsf6ZBoPef0SfpcBsFAVB1WoVUdfybvsUisi7H1lCbH7z0hwNjvIW1KS7aRAz7958eKWiNIJEu1zIdlFquu8eZt0OlD/eU7THnlCtwVs8UrUilXmtPEjolkpH4rrEhrxNtBLQDuwlTKbJP9vQwuoJEHU1n64Mi5q3jxRvhRV4KPifPNZ8lU+tZiHmN4Yu3wmiv7TQ29LVX9rjiFckLQVMxheSyEimEpLBb8xb+LQ4P76YjLZOyP+PX6KD2FhKSeWopqvp2/2tfOJSucDQVrVudNMeT5Iv3/mnLnbcmPQCCfFHQ9TUtRMbDpFuQz9SxjeSiduDY/krdnxC3GxliaDn3xENKFT2fyalNDo14xZo0xoh6WRdahhUot1/gwACCEW7Vc=
-  file: dist/
+  file:
+    - dist/hldemo.js
+    - dist/hldemo.js.map
+    - dist/hldemo.min.js
+  skip_cleanup: true
   on:
     repo: Matherunner/hldemojs
     tags: true

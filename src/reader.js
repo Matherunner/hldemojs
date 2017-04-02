@@ -6,7 +6,6 @@ class ParseException {
 	}
 }
 
-const HEADER_SIZE = 544;
 const HEADER_MAPNAME_SIZE = 260;
 const HEADER_GAMEDIRECTORY_SIZE = 260;
 
@@ -19,7 +18,6 @@ const FRAME_SKYNAME_SIZE = 32;
 const FRAME_TYPE_MIN = 2;
 const FRAME_TYPE_MAX = 9;
 
-// TODO: check for size throughout
 // These functions return true if the parsing is meant to continue, false if otherwise.
 const FRAME_READERS = [
 	() => false,
@@ -79,7 +77,6 @@ const FRAME_READERS = [
 	(viewer, frame) => {
 		frame.channel = viewer.readInt32();
 		const length = viewer.readInt32();
-		// TODO: check length
 		frame.samples = viewer.readUint8Array(length);
 		frame.attenuation = viewer.readFloat32();
 		frame.volume = viewer.readFloat32();
@@ -91,7 +88,6 @@ const FRAME_READERS = [
 	// Index 9: DEMO_BUFFER
 	(viewer, frame) => {
 		const length = viewer.readInt32();
-		// TODO: check length
 		frame.buffer = viewer.readUint8Array(length);
 		return true;
 	},
@@ -198,7 +194,6 @@ function readNetMessageFrame(viewer, frame) {
 	frame.last_reliable_sequence = viewer.readInt32();
 
 	const length = viewer.readInt32();
-	// TODO: check length
 	frame.msg = viewer.readUint8Array(length);
 
 	return true;
@@ -229,7 +224,6 @@ function readDemoDirectory(viewer, directoryOffset) {
 	viewer.seekBeg(directoryOffset);
 
 	const entryCount = viewer.readInt32();
-	// TODO: check for size
 	if (entryCount < DIRECTORY_ENTRY_COUNT_MIN || entryCount > DIRECTORY_ENTRY_COUNT_MAX) {
 		throw new ParseException('invalid number of directory entries');
 	}
@@ -252,8 +246,6 @@ function readDemoDirectory(viewer, directoryOffset) {
 }
 
 function readDemoFrame(viewer) {
-	// TODO: check min frame size
-
 	const frame = {
 		type: viewer.readUint8(),
 		time: viewer.readFloat32(),
@@ -301,11 +293,11 @@ export default class DemoReader {
 		this.onready = callback;
 	}
 
-	parseBuffer(buffer) {
-		if (buffer.byteLength < HEADER_SIZE) {
-			throw new ParseException('file size is too small');
-		}
+	onerror(callback) {
+		this.onerror = callback;
+	}
 
+	parseBuffer(buffer) {
 		const viewer = new ViewWrapper(buffer);
 		this.header = readDemoHeader(viewer);
 		this.directoryEntries = readDemoDirectory(viewer, this.header.directoryOffset);
@@ -316,13 +308,21 @@ export default class DemoReader {
 		const fileReader = new FileReader();
 		const instance = this;
 		fileReader.onload = () => {
-			instance.parseBuffer(fileReader.result);
+			try {
+				instance.parseBuffer(fileReader.result);
+			} catch (e) {
+				if (instance.onerror) {
+					instance.onerror(e);
+				}
+				return;
+			}
+
 			if (instance.onready) {
 				instance.onready();
 			}
 		};
 		fileReader.onerror = () => {
-			throw new ParseException('failed to read file');
+			instance.onerror(new ParseException('failed to read file'));
 		};
 		fileReader.readAsArrayBuffer(file);
 	}

@@ -32,6 +32,17 @@
 				{
 					"allowForLoopAfterthoughts": true
 				}
+			],
+			"no-mixed-operators": [
+				"error",
+				{
+					"groups": [
+						["&", "|", "^", "~", "<<", ">>", ">>>"],
+						["==", "!=", "===", "!==", ">", ">=", "<", "<="],
+						["&&", "||"],
+						["in", "instanceof"]
+					]
+				}
 			]
 		},
 		"env": {

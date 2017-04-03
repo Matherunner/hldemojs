@@ -1,22 +1,11 @@
 import ViewWrapper from './viewwrapper';
+import CONSTS from './common';
 
 class ParseException {
 	constructor(message) {
 		this.message = message;
 	}
 }
-
-const HEADER_MAPNAME_SIZE = 260;
-const HEADER_GAMEDIRECTORY_SIZE = 260;
-
-const DIRECTORY_ENTRY_COUNT_MIN = 1;
-const DIRECTORY_ENTRY_COUNT_MAX = 1024;
-const DIRECTORY_ENTRY_DESCRIPTION_SIZE = 64;
-
-const FRAME_CONSOLE_COMMAND_SIZE = 64;
-const FRAME_SKYNAME_SIZE = 32;
-const FRAME_TYPE_MIN = 2;
-const FRAME_TYPE_MAX = 9;
 
 // These functions return true if the parsing is meant to continue, false if otherwise.
 const FRAME_READERS = [
@@ -28,7 +17,7 @@ const FRAME_READERS = [
 
 	// Index 3: CONSOLE_COMMAND
 	(viewer, frame) => {
-		frame.command = viewer.readString(FRAME_CONSOLE_COMMAND_SIZE);
+		frame.command = viewer.readString(CONSTS.FRAME_CONSOLE_COMMAND_SIZE);
 		return true;
 	},
 
@@ -170,7 +159,7 @@ function readNetMessageFrame(viewer, frame) {
 			zmax: viewer.readFloat32(),
 			waveHeight: viewer.readFloat32(),
 			footsteps: viewer.readInt32(),
-			skyName: viewer.readString(FRAME_SKYNAME_SIZE),
+			skyName: viewer.readString(CONSTS.FRAME_SKYNAME_SIZE),
 			rollangle: viewer.readFloat32(),
 			rollspeed: viewer.readFloat32(),
 			skycolor_r: viewer.readFloat32(),
@@ -209,8 +198,8 @@ function readDemoHeader(viewer) {
 	return {
 		demoProtocol: viewer.readInt32(),
 		netProtocol: viewer.readInt32(),
-		mapName: viewer.readString(HEADER_MAPNAME_SIZE),
-		gameDirectory: viewer.readString(HEADER_GAMEDIRECTORY_SIZE),
+		mapName: viewer.readString(CONSTS.HEADER_MAPNAME_SIZE),
+		gameDirectory: viewer.readString(CONSTS.HEADER_GAMEDIRECTORY_SIZE),
 		mapCRC: viewer.readInt32(),
 		directoryOffset: viewer.readInt32(),
 	};
@@ -224,7 +213,8 @@ function readDemoDirectory(viewer, directoryOffset) {
 	viewer.seekBeg(directoryOffset);
 
 	const entryCount = viewer.readInt32();
-	if (entryCount < DIRECTORY_ENTRY_COUNT_MIN || entryCount > DIRECTORY_ENTRY_COUNT_MAX) {
+	if (entryCount < CONSTS.DIRECTORY_ENTRY_COUNT_MIN
+		|| entryCount > CONSTS.DIRECTORY_ENTRY_COUNT_MAX) {
 		throw new ParseException('invalid number of directory entries');
 	}
 
@@ -232,7 +222,7 @@ function readDemoDirectory(viewer, directoryOffset) {
 	for (let i = 0; i < entryCount; ++i) {
 		directoryEntries.push({
 			type: viewer.readInt32(),
-			description: viewer.readString(DIRECTORY_ENTRY_DESCRIPTION_SIZE),
+			description: viewer.readString(CONSTS.DIRECTORY_ENTRY_DESCRIPTION_SIZE),
 			flags: viewer.readInt32(),
 			CDtrack: viewer.readInt32(),
 			trackTime: viewer.readFloat32(),
@@ -253,7 +243,7 @@ function readDemoFrame(viewer) {
 	};
 
 	let stop;
-	if (FRAME_TYPE_MIN <= frame.type && frame.type <= FRAME_TYPE_MAX) {
+	if (CONSTS.FRAME_TYPE_MIN <= frame.type && frame.type <= CONSTS.FRAME_TYPE_MAX) {
 		stop = !FRAME_READERS[frame.type](viewer, frame);
 	} else {
 		stop = !readNetMessageFrame(viewer, frame);
@@ -268,17 +258,17 @@ function readDemoFrames(viewer, header, directoryEntries) {
 	}
 
 	for (let i = 0; i < directoryEntries.length; ++i) {
-		const entry = directoryEntries[i];
-		if (entry.offset < 0 || viewer.view.buffer.byteLength < entry.offset) {
+		const directoryEntry = directoryEntries[i];
+		if (directoryEntry.offset < 0 || viewer.view.buffer.byteLength < directoryEntry.offset) {
 			throw new ParseException('invalid offset in directory entry');
 		}
 
-		viewer.seekBeg(entry.offset);
-		entry.frames = [];
+		viewer.seekBeg(directoryEntry.offset);
+		directoryEntry.frames = [];
 		let frame;
 		do {
 			frame = readDemoFrame(viewer);
-			entry.frames.push(frame.frame);
+			directoryEntry.frames.push(frame.frame);
 		} while (!frame.stop);
 	}
 }
@@ -287,6 +277,7 @@ export default class DemoReader {
 	constructor() {
 		this.header = {};
 		this.directoryEntries = [];
+		this.demoSize = 0;
 	}
 
 	onready(callback) {
@@ -307,8 +298,11 @@ export default class DemoReader {
 	parse(file) {
 		const fileReader = new FileReader();
 		const instance = this;
+		this.header = {};
+		this.directoryEntries = {};
 		fileReader.onload = () => {
 			try {
+				instance.demoSize = fileReader.result.byteLength;
 				instance.parseBuffer(fileReader.result);
 			} catch (e) {
 				if (instance.onerror) {
